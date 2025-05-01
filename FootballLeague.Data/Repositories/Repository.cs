@@ -56,5 +56,10 @@ namespace FootballLeague.Data.Repositories
             _context.Entry(obj).State = EntityState.Deleted;
             await _context.SaveChangesAsync();
         }
+
+        public async Task SaveChangesAsync()
+        {
+            await _context.SaveChangesAsync();
+        }
     }
 }

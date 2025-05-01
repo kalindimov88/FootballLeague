@@ -12,10 +12,12 @@ namespace FootballLeague.Core.Services
     public class TeamService : ITeamService
     {
         private readonly IRepository _repository;
+        private readonly IRankingService _rankingService;
 
-        public TeamService(IRepository repository)
+        public TeamService(IRepository repository, IRankingService rankingService)
         {
             _repository = repository;
+            _rankingService = rankingService;
         }
 
         public async Task<TeamDto> CreateTeamAsync(CreateTeamDto newTeam)
@@ -27,13 +29,10 @@ namespace FootballLeague.Core.Services
             };
 
             await _repository.AddAsync<Team>(team);
+            var teamDto = MapToDto(team);
+            await _rankingService.AddTeamAync(teamDto);
 
-            return new TeamDto
-            {
-                Id = team.Id,
-                Name = team.Name,
-                CreatedDate = team.CreatedDate
-            };
+            return teamDto;
         }
 
         public async Task<TeamDto> GetTeamByIdAsync(int id)
@@ -45,24 +44,14 @@ namespace FootballLeague.Core.Services
                 return null;
             }
 
-            return new TeamDto
-            {
-                Id = team.Id,
-                Name = team.Name,
-                CreatedDate = team.CreatedDate
-            };
+            return MapToDto(team);
         }
 
         public async Task<IEnumerable<TeamDto>> GetAllTeamsAsync()
         {
             var teams = await _repository.SetNoTracking<Team>().ToListAsync();
 
-            return teams.Select(team => new TeamDto
-            {
-                Id = team.Id,
-                Name = team.Name,
-                CreatedDate = team.CreatedDate
-            });
+            return teams.Select(team => MapToDto(team));
         }
 
         public async Task<TeamDto> UpdateTeamAsync(int id, UpdateTeamDto updateTeam)
@@ -77,12 +66,7 @@ namespace FootballLeague.Core.Services
             team.Name = updateTeam.Name;
             await _repository.UpdateAsync<Team>(team);
 
-            return new TeamDto
-            {
-                Id = team.Id,
-                Name = team.Name,
-                CreatedDate = team.CreatedDate
-            };
+            return MapToDto(team);
         }
 
         public async Task<bool> DeleteTeamAsync(int id)
@@ -96,6 +80,16 @@ namespace FootballLeague.Core.Services
 
             await _repository.DeleteAsync<Team>(team);
             return true;
+        }
+
+        private TeamDto MapToDto(Team team)
+        {
+            return new TeamDto
+            {
+                Id = team.Id,
+                Name = team.Name,
+                CreatedDate = team.CreatedDate
+            };
         }
     }
 }

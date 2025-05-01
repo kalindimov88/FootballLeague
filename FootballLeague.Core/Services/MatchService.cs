@@ -12,10 +12,12 @@ namespace FootballLeague.Core.Services
     public class MatchService : IMatchService
     {
         private readonly IRepository _repository;
+        private readonly IRankingService _rankingService;
 
-        public MatchService(IRepository repository)
+        public MatchService(IRepository repository, IRankingService rankingService)
         {
             _repository = repository;
+            _rankingService = rankingService;
         }
 
         public async Task<MatchDto> CreateMatchAsync(CreateMatchDto newMatch)
@@ -26,13 +28,16 @@ namespace FootballLeague.Core.Services
                 AwayTeamId = newMatch.AwayTeamId,
                 HomeTeamScore = newMatch.HomeTeamScore,
                 AwayTeamScore = newMatch.AwayTeamScore,
-                MatchDate = DateTime.UtcNow
+                MatchDate = newMatch.MatchDate
             };
 
             await _repository.AddAsync<Match>(match);
+            var matchDto = MapToDto(match);
+            await _rankingService.UpdateRankingsAsync(matchDto);
 
-            return MapToDto(match);
+            return matchDto;
         }
+
         public async Task<bool> DeleteMatchAsync(int id)
         {
             var match = await _repository.GetByIdAsync<Match>(id);
@@ -48,14 +53,15 @@ namespace FootballLeague.Core.Services
 
         public async Task<IEnumerable<MatchDto>> GetAllMatchesAsync()
         {
-            var matches = await _repository.SetNoTracking<Match>().ToListAsync();
+            var matches = await _repository.SetNoTracking<Match>("HomeTeam", "AwayTeam").ToListAsync();
 
             return matches.Select(match => MapToDto(match));
         }
 
         public async Task<MatchDto> GetMatchByIdAsync(int id)
         {
-            var match = await _repository.GetByIdAsync<Match>(id);
+            var match = await _repository.SetNoTracking<Match>("HomeTeam", "AwayTeam")
+                .SingleOrDefaultAsync(record => record.Id == id);
 
             if (match == null)
             {
@@ -85,6 +91,11 @@ namespace FootballLeague.Core.Services
 
         private MatchDto MapToDto(Match match)
         {
+            if (match == null)
+            {
+                return null;
+            }
+
             return new MatchDto
             {
                 Id = match.Id,
@@ -92,7 +103,24 @@ namespace FootballLeague.Core.Services
                 AwayTeamId = match.AwayTeamId,
                 HomeTeamScore = match.HomeTeamScore,
                 AwayTeamScore = match.AwayTeamScore,
+                HomeTeam = MapToDto(match.HomeTeam),
+                AwayTeam = MapToDto(match.AwayTeam),
                 MatchDate = match.MatchDate
+            };
+        }
+
+        private TeamDto MapToDto(Team match)
+        {
+            if (match == null)
+            {
+                return null;
+            }
+
+            return new TeamDto
+            { 
+                Id = match.Id,
+                Name = match.Name,
+                CreatedDate = match.CreatedDate
             };
         }
     }

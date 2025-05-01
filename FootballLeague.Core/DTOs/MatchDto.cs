@@ -14,6 +14,10 @@ namespace FootballLeague.Core.DTOs
 
         public int AwayTeamScore { get; set; }
 
+        public TeamDto HomeTeam { get; set; }
+
+        public TeamDto AwayTeam { get; set; }
+
         public DateTime MatchDate { get; set; }
     }
 }
